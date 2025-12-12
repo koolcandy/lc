@@ -1,0 +1,48 @@
+name: Build Android & iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Flutter Apps
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "stable"
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # -------- Android --------
+      - name: Build Android APK (release)
+        run: flutter build apk --release
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # -------- iOS --------
+      - name: Build iOS (unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Create Unsigned IPA
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload
+          zip -r app-unsigned.ipa Payload
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-unsigned
+          path: build/ios/iphoneos/app-unsigned.ipa
